@@ -1,5 +1,5 @@
-name:                lhsmd
-version:             1.0
+name:                lhs2html
+version:             0.99
 synopsis:            Compile lhs in bird style to md, html, hs.
 license:             PublicDomain
 license-file:        LICENSE
@@ -9,9 +9,8 @@ category:            Development
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable lhsmd
-  main-is:             lhsmd.hs
-  -- other-modules:       
+executable lhs2html
+  main-is:             lhs2html.hs
   build-depends:       base >=4.7 && <4.8, nicify
   hs-source-dirs:      src
   default-language:    Haskell2010
