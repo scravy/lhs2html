@@ -8,7 +8,7 @@ maintainer:          julian.fleischer@warhog.net
 category:            Development
 build-type:          Simple
 cabal-version:       >=1.10
-data-files:          data/header.htm
+data-files:          data/*.htm
 
 executable lhs2html
   main-is:             lhs2html.hs
