@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset='UTF-8'>
+<style>
+  body, html { padding: 0; margin: 0 }  #nav { position: fixed; top: 0; right: 0; background: rgba(0,0,0,.5); color: white;         border-bottom-left-radius: 1em; margin: 0; padding: .5em; counter-reset: theLines; }
+  #nav a { color: yellow; }
+  code, pre, blockquote { font-family: 'Courier', 'Courier New', monospace; font-size: .83em }
+  #code { width: 750px; margin: 1em auto 1em auto }
+  p { text-align: justify }
+  p, ul, ol { margin: .5em 0; line-height: 1.4em }
+  code { border-radius: .4em; background: #eeeeee; padding: .2em; }
+  body { font-family: 'Helvetica', 'Arial', sans-serif }
+  blockquote span { display: block }
+  pre { background: #f0f0f0; border: 1px solid black; padding: 0.5em; }
+  pre span { counter-increment: theLines }
+  pre span:before { content: counter(theLines); position: absolute;                     display: block; text-align: right;                    margin-left: -3em; padding-right: 2em; margin-top: .2em;                    color: gray; font-size: .83em }
+  #code:target > * { display: none }
+  #code:target > h1 { display: block }
+  #code:target > h2 { display: block }
+  #code:target > h3 { display: block }
+  #code:target > pre { display: block; border-top: 0px; border-bottom: 0px; margin: 0; }
+  #code:target { margin: 0 auto 0 auto } 
+</style>
+</head>
+<body>
+<p id='nav'>
+<a href='#'>Show all</a> | <a href='#code'>Show only code</a>
+</p>
+<div id='code'>
