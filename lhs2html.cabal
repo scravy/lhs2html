@@ -1,5 +1,5 @@
 name:                lhs2html
-version:             0.999
+version:             0.9999
 synopsis:            Compile lhs in bird style to md, html, hs.
 license:             PublicDomain
 license-file:        LICENSE
