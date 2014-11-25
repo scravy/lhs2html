@@ -2,53 +2,32 @@
 
 module Main where
 
-import Control.Applicative
+import Data.Functor
+import Control.Monad
 import System.Environment
 import Text.Nicify
+
+import System.FilePath
+import Paths_lhs2html
 
 main = getArgs >>= \case
     
     [] -> lhs2html <$> getContents >>= putStrLn
     
-    args -> flip mapM_ args $ \f -> lhs2html <$> readFile f >>= writeFile (f ++ ".html")
+    args -> do
+        header <- getDataFileName ("data" </> "header.htm") >>= readFile
+        footer <- getDataFileName ("data" </> "footer.htm") >>= readFile
+
+        forM_ args $ \f -> do
+
+            let outfile = f ++ ".html"
+
+            writeFile outfile header
+            lhs2html <$> readFile f >>= appendFile outfile
+            appendFile outfile footer
     
-preamble = "<!DOCTYPE html>\n\
-    \<html>\n\
-    \<head>\n\
-    \   <meta charset='UTF-8'>\n\
-    \<style>\n\
-    \  body, html { padding: 0; margin: 0 }\
-    \  #nav { position: fixed; top: 0; right: 0; background: rgba(0,0,0,.5); color: white;\
-    \         border-bottom-left-radius: 1em; margin: 0; padding: .5em; counter-reset: theLines; }\n\
-    \  #nav a { color: yellow; }\n\
-    \  code, pre, blockquote { font-family: 'Courier', 'Courier New', monospace; font-size: .83em }\n\
-    \  #code { width: 750px; margin: 1em auto 1em auto }\n\
-    \  p { text-align: justify }\n\
-    \  p, ul, ol { margin: .5em 0; line-height: 1.4em }\n\
-    \  code { border-radius: .4em; background: #eeeeee; padding: .2em; }\n\
-    \  body { font-family: 'Helvetica', 'Arial', sans-serif }\n\
-    \  blockquote span { display: block }\n\
-    \  pre { background: #f0f0f0; border: 1px solid black; padding: 0.5em; }\n\
-    \  pre span { counter-increment: theLines }\n\
-    \  pre span:before { content: counter(theLines); position: absolute; \
-    \                    display: block; text-align: right;\
-    \                    margin-left: -3em; padding-right: 2em; margin-top: .2em;\
-    \                    color: gray; font-size: .83em }\n\
-    \  #code:target > * { display: none }\n\
-    \  #code:target > h1 { display: block }\n\
-    \  #code:target > h2 { display: block }\n\
-    \  #code:target > pre { display: block; border-top: 0px; border-bottom: 0px; margin: 0; }\n\
-    \  #code:target { margin: 0 auto 0 auto } \n\
-    \</style>\n\
-    \</head>\n\
-    \<body>\n\
-    \<p id='nav'>\n\
-    \<a href='#'>Show all</a> | <a href='#code'>Show only code</a>\n\
-    \</p>\n<div id='code'>\n"
-
-
 lhs2html :: String -> String
-lhs2html = (preamble ++) . foldr toHTML "" . filter (\x -> x /= Empty && x /= Para []) . parse
+lhs2html = foldr toHTML "" . parse
 
 parse :: String -> [Object]
 parse = process . map identify . lines
