@@ -21,16 +21,22 @@ preamble = "<!DOCTYPE html>\n\
     \  #nav { position: fixed; top: 0; right: 0; background: rgba(0,0,0,.5); color: white;\
     \         border-bottom-left-radius: 1em; margin: 0; padding: .5em; counter-reset: theLines; }\n\
     \  #nav a { color: yellow; }\n\
-    \  #code { width: 850px; margin: 1em auto 1em auto }\n\
-    \  p { margin: .5em 0; line-height: 1.4em; text-align: justify }\n\
+    \  code, pre, blockquote { font-family: 'Courier', 'Courier New', monospace; font-size: .83em }\n\
+    \  #code { width: 750px; margin: 1em auto 1em auto }\n\
+    \  p { text-align: justify }\n\
+    \  p, ul, ol { margin: .5em 0; line-height: 1.4em }\n\
     \  code { border-radius: .4em; background: #eeeeee; padding: .2em; }\n\
     \  body { font-family: 'Helvetica', 'Arial', sans-serif }\n\
+    \  blockquote span { display: block }\n\
     \  pre { background: #f0f0f0; border: 1px solid black; padding: 0.5em; }\n\
-    \  span { counter-increment: theLines }\n\
-    \  span:before { content: counter(theLines); position: absolute; \
-    \                display: block; text-align: right;\
-    \                margin-left: -3em; padding-right: 2em; color: gray; font-size: .83em }\n\
-    \  #code:target > p { display: none }\n\
+    \  pre span { counter-increment: theLines }\n\
+    \  pre span:before { content: counter(theLines); position: absolute; \
+    \                    display: block; text-align: right;\
+    \                    margin-left: -3em; padding-right: 2em; margin-top: .2em;\
+    \                    color: gray; font-size: .83em }\n\
+    \  #code:target > * { display: none }\n\
+    \  #code:target > h1 { display: block }\n\
+    \  #code:target > h2 { display: block }\n\
     \  #code:target > pre { display: block; border-top: 0px; border-bottom: 0px; margin: 0; }\n\
     \  #code:target { margin: 0 auto 0 auto } \n\
     \</style>\n\
@@ -42,10 +48,10 @@ preamble = "<!DOCTYPE html>\n\
 
 
 lhs2html :: String -> String
-lhs2html = (preamble ++) . foldr toHTML "" . parse
+lhs2html = (preamble ++) . foldr toHTML "" . filter (\x -> x /= Empty && x /= Para []) . parse
 
 parse :: String -> [Object]
-parse = filter (\x -> x /= Empty && x /= Para []) . process . map identify . lines
+parse = process . map identify . lines
 
 data Object =
     Empty
@@ -111,8 +117,11 @@ process = \case
 toHTML :: Object -> ShowS
 toHTML obj xs = case obj of
     
-    Para ls -> foldr (++) ("</p>\n" ++ xs)   ("<p>"   : map' htmlize ls)
-    Code ls -> foldr (++) ("</pre>\n" ++ xs) ("<pre>" : map' (spanify . escape) ls)
+    Para ls -> mkBlock "p" htmlize ls xs
+    Code ls -> mkBlock "pre" (spanify . escape) ls xs
+    List ls -> mkBlock "ul" (itemize . htmlize) ls xs
+    OrdList ls -> mkBlock "ol" (itemize . htmlize) ls xs
+    Quote ls -> mkBlock "blockquote" (spanify . escape) ls xs
 
     H1 ls -> "<h1>" ++ htmlize ls ++ "</h1>\n" ++ xs
     H2 ls -> "<h2>" ++ htmlize ls ++ "</h2>\n" ++ xs
@@ -120,24 +129,28 @@ toHTML obj xs = case obj of
 
     _ -> xs
 
-spanify xs = "<span>" ++ xs ++ "</span>"
+  where
 
-map' :: (String -> String) -> [String] -> [String]
-map' f = foldr (\a b -> (f a ++ "\n") : b) []
+    mkBlock :: String -> (String -> String) -> [String] -> ShowS
+    mkBlock tag f ls xs = foldr (++) ("</" ++ tag ++ ">\n" ++ xs) (("<" ++ tag ++ ">") : map' f ls)
 
-htmlize :: String -> String
-htmlize = codify False . escape 
+    itemize xs = "<li>" ++ xs ++ "</li>"
 
-escape :: String -> String
-escape = concatMap $ \case
-    '<' -> "&lt;"
-    '>' -> "&gt;"
-    '&' -> "&amp;"
-    x -> [x]
+    spanify [] = ""
+    spanify xs = "<span>" ++ xs ++ "</span>"
 
-codify :: Bool -> String -> String
-codify False ('`' : xs) = "<code>"  ++ codify True  xs
-codify True  ('`' : xs) = "</code>" ++ codify False xs
-codify flag  (x   : xs) = x : codify flag xs
-codify _     _          = []
+    map' f = foldr (\a b -> (f a ++ "\n") : b) []
+
+    htmlize = codify False . escape 
+
+    escape = concatMap $ \case
+        '<' -> "&lt;"
+        '>' -> "&gt;"
+        '&' -> "&amp;"
+        x -> [x]
+
+    codify False ('`' : xs) = "<code>"  ++ codify True  xs
+    codify True  ('`' : xs) = "</code>" ++ codify False xs
+    codify flag  (x   : xs) = x : codify flag xs
+    codify _     _          = []
 
