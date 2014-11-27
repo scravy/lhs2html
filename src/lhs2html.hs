@@ -3,48 +3,75 @@
 module Main where
 
 import Data.Functor
+import Data.List
 import Control.Monad
 import System.Environment
 import Text.Nicify
-
+import System.Directory
 import System.FilePath
+import System.FilePath.Glob
 import Paths_lhs2html
 
 main = getArgs >>= \case
     
     m : args
-        | m == "-m" || m == "--markdown" -> run lhs2md ".md" args
-        | m == "-u" || m == "--unlit"    -> run lhs2hs ".hs" args
+        | m == "-m" || m == "--markdown"  -> run lhs2md  "md"  args
+        | m == "-u" || m == "--unlit"     -> run lhs2hs  "hs"  args
+        | m == "-p" || m == "--parsetree" -> run lhs2txt "txt" args
 
-    args -> run lhs2html ".html" args
+        | m == "-v" || m == "--version"   -> putStrLn "lhs2html v0.99999"
+        | m == "-h" || m == "--help"      -> putStrLn "\
+            \  -m  --markdown  transform to github flavored markdown (*.md)\n\
+            \  -u  --unlint    plain unlit to *.hs\n\
+            \  -p  --parsetree show parse tree as *.txt\n\
+            \  -h  --help      this help\n\
+            \  -v  --version   show version information"
+
+    args -> run lhs2html "htm" args
 
 run processor suffix = \case
 
-    [] -> lhs2html <$> getContents >>= putStrLn
+    [] -> processor <$> getContents >>= putStrLn
     
     args -> do
-        header <- getDataFileName ("data" </> "header.htm") >>= readFile
-        footer <- getDataFileName ("data" </> "footer.htm") >>= readFile
+        header <- getDataFileName ("data" </> "header" <.> suffix) >>= readFile
+        footer <- getDataFileName ("data" </> "footer" <.> suffix) >>= readFile
 
-        forM_ args $ \f -> do
+        let process f = do
+                isFile <- doesFileExist f
+                isDir  <- doesDirectoryExist f
 
-            let outfile = f ++ suffix
+                when isDir (globDir1 (compile "*.lhs") f >>= mapM_ process)
 
-            writeFile outfile header
-            processor <$> readFile f >>= appendFile outfile
-            appendFile outfile footer
-    
-lhs2html :: String -> String
+                when isFile $ do
+                    let outfile = f <.> suffix
+
+                    writeFile outfile header
+                    processor <$> readFile f >>= appendFile outfile
+                    appendFile outfile footer
+ 
+        mapM_ process args
+
+lhs2txt = nicify . show . parse
+
 lhs2html = foldr toHTML "" . parse
 
-lhs2md :: String -> String
-lhs2md = foldr toHTML "" . map indentCode . parse
+lhs2md = concat . intersperse "\n" . filter (not . null) . map toMarkdown . parse
   where
-    indentCode = \case
-        Code xs -> Code $ map (replicate 4 ' ' ++) xs
-        x -> x
+    nl x y = x ++ '\n' : y
+    infixr 5 `nl`
 
-lhs2hs :: String -> String
+    toMarkdown = \case
+        Code xs     -> unlines $ ("```haskell" : xs ++ ["```"])
+        Para xs     -> unlines xs
+        Quote xs    -> unlines xs
+        OrdList xs  -> unlines $ map ("1. " ++) xs
+        List xs     -> unlines $ map ("* "  ++) xs
+        H1 x        -> x `nl` replicate (length x) '=' `nl` ""
+        H2 x        -> x `nl` replicate (length x) '-' `nl` ""
+        H3 x        -> "### " ++ x `nl` ""
+        _ -> []
+
 lhs2hs = unlines . concatMap (\case { Code xs -> xs; _ -> [] }) . parse
 
 parse :: String -> [Object]
@@ -68,6 +95,7 @@ identify :: String -> Object
 identify = \case
 
     '>' : ' ' : xs -> Code [xs]
+    '>' : xs -> Code [xs]
 
     '-' : xs
       | all (== '-') xs -> H2'
