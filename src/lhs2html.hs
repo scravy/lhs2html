@@ -12,6 +12,14 @@ import Paths_lhs2html
 
 main = getArgs >>= \case
     
+    m : args
+        | m == "-m" || m == "--markdown" -> run lhs2md ".md" args
+        | m == "-u" || m == "--unlit"    -> run lhs2hs ".hs" args
+
+    args -> run lhs2html ".html" args
+
+run processor suffix = \case
+
     [] -> lhs2html <$> getContents >>= putStrLn
     
     args -> do
@@ -20,14 +28,24 @@ main = getArgs >>= \case
 
         forM_ args $ \f -> do
 
-            let outfile = f ++ ".html"
+            let outfile = f ++ suffix
 
             writeFile outfile header
-            lhs2html <$> readFile f >>= appendFile outfile
+            processor <$> readFile f >>= appendFile outfile
             appendFile outfile footer
     
 lhs2html :: String -> String
 lhs2html = foldr toHTML "" . parse
+
+lhs2md :: String -> String
+lhs2md = foldr toHTML "" . map indentCode . parse
+  where
+    indentCode = \case
+        Code xs -> Code $ map (replicate 4 ' ' ++) xs
+        x -> x
+
+lhs2hs :: String -> String
+lhs2hs = unlines . concatMap (\case { Code xs -> xs; _ -> [] }) . parse
 
 parse :: String -> [Object]
 parse = filter (\x -> x /= Empty && x /= Para []) . process . map identify . lines
