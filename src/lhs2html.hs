@@ -48,7 +48,7 @@ lhs2hs :: String -> String
 lhs2hs = unlines . concatMap (\case { Code xs -> xs; _ -> [] }) . parse
 
 parse :: String -> [Object]
-parse = filter (\x -> x /= Empty && x /= Para []) . process . map identify . lines
+parse = process . map identify . lines
 
 data Object =
     Empty
@@ -114,8 +114,11 @@ process = \case
 toHTML :: Object -> ShowS
 toHTML obj xs = case obj of
     
-    Para ls -> foldr (++) ("</p>\n" ++ xs)   ("<p>"   : map' htmlize ls)
-    Code ls -> foldr (++) ("</pre>\n" ++ xs) ("<pre>" : map' (spanify . escape) ls)
+    Para ls -> mkBlock "p" htmlize ls xs
+    Code ls -> mkBlock "pre" (spanify . escape) ls xs
+    List ls -> mkBlock "ul" (itemize . htmlize) ls xs
+    OrdList ls -> mkBlock "ol" (itemize . htmlize) ls xs
+    Quote ls -> mkBlock "blockquote" (spanify . escape) ls xs
 
     H1 ls -> "<h1>" ++ htmlize ls ++ "</h1>\n" ++ xs
     H2 ls -> "<h2>" ++ htmlize ls ++ "</h2>\n" ++ xs
@@ -123,24 +126,28 @@ toHTML obj xs = case obj of
 
     _ -> xs
 
-spanify xs = "<span>" ++ xs ++ "</span>"
+  where
 
-map' :: (String -> String) -> [String] -> [String]
-map' f = foldr (\a b -> (f a ++ "\n") : b) []
+    mkBlock :: String -> (String -> String) -> [String] -> ShowS
+    mkBlock tag f ls xs = foldr (++) ("</" ++ tag ++ ">\n" ++ xs) (("<" ++ tag ++ ">") : map' f ls)
 
-htmlize :: String -> String
-htmlize = codify False . escape 
+    itemize xs = "<li>" ++ xs ++ "</li>"
 
-escape :: String -> String
-escape = concatMap $ \case
-    '<' -> "&lt;"
-    '>' -> "&gt;"
-    '&' -> "&amp;"
-    x -> [x]
+    spanify [] = ""
+    spanify xs = "<span>" ++ xs ++ "</span>"
 
-codify :: Bool -> String -> String
-codify False ('`' : xs) = "<code>"  ++ codify True  xs
-codify True  ('`' : xs) = "</code>" ++ codify False xs
-codify flag  (x   : xs) = x : codify flag xs
-codify _     _          = []
+    map' f = foldr (\a b -> (f a ++ "\n") : b) []
+
+    htmlize = codify False . escape 
+
+    escape = concatMap $ \case
+        '<' -> "&lt;"
+        '>' -> "&gt;"
+        '&' -> "&amp;"
+        x -> [x]
+
+    codify False ('`' : xs) = "<code>"  ++ codify True  xs
+    codify True  ('`' : xs) = "</code>" ++ codify False xs
+    codify flag  (x   : xs) = x : codify flag xs
+    codify _     _          = []
 
