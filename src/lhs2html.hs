@@ -1,18 +1,15 @@
-{-# LANGUAGE Haskell2010, LambdaCase #-}
-
 module Main where
 
 import Data.Functor
 import Data.List
 import Control.Monad
 import System.Environment
-import Text.Nicify
 import System.Directory
 import System.FilePath
 import System.FilePath.Glob
 import Paths_lhs2html
 
-main = getArgs >>= \case
+main = getArgs >>= \x -> case x of
     
     m : args
         | m == "-m" || m == "--markdown"  -> run lhs2md  "md"  args
@@ -29,7 +26,7 @@ main = getArgs >>= \case
 
     args -> run lhs2html "htm" args
 
-run processor suffix = \case
+run processor suffix = \x -> case x of
 
     [] -> processor <$> getContents >>= putStrLn
     
@@ -52,7 +49,7 @@ run processor suffix = \case
  
         mapM_ process args
 
-lhs2txt = nicify . show . parse
+lhs2txt = show . parse
 
 lhs2html = foldr toHTML "" . parse
 
@@ -61,7 +58,7 @@ lhs2md = concat . intersperse "\n" . filter (not . null) . map toMarkdown . pars
     nl x y = x ++ '\n' : y
     infixr 5 `nl`
 
-    toMarkdown = \case
+    toMarkdown = \x -> case x of
         Code xs     -> unlines $ ("```haskell" : xs ++ ["```"])
         Para xs     -> unlines xs
         Quote xs    -> unlines xs
@@ -72,7 +69,7 @@ lhs2md = concat . intersperse "\n" . filter (not . null) . map toMarkdown . pars
         H3 x        -> "### " ++ x `nl` ""
         _ -> []
 
-lhs2hs = unlines . concatMap (\case { Code xs -> xs; _ -> [] }) . parse
+lhs2hs = unlines . concatMap (\x -> case x of { Code xs -> xs; _ -> [] }) . parse
 
 parse :: String -> [Object]
 parse = process . map identify . lines
@@ -92,7 +89,7 @@ data Object =
 
 
 identify :: String -> Object
-identify = \case
+identify = \x -> case x of
 
     '>' : ' ' : xs -> Code [xs]
     '>' : xs -> Code [xs]
@@ -120,7 +117,7 @@ identify = \case
     xs -> Para [xs]
 
 process :: [Object] -> [Object]
-process = \case
+process = \x -> case x of
     Empty : xs@(Empty : _) -> process xs
     
     Para x : Para y : xs -> process (Para (x ++ y) : xs)
@@ -168,7 +165,7 @@ toHTML obj xs = case obj of
 
     htmlize = codify False . escape 
 
-    escape = concatMap $ \case
+    escape = concatMap $ \x -> case x of
         '<' -> "&lt;"
         '>' -> "&gt;"
         '&' -> "&amp;"
