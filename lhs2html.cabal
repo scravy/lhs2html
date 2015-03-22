@@ -12,7 +12,7 @@ data-files:          data/*.htm, data/*.md, data/*.hs, data/*.txt
 
 executable lhs2html
   main-is:             lhs2html.hs
-  build-depends:       base >=4.6 && <5
+  build-depends:       base >=4.5 && <5
                        , nicify
                        , filepath
                        , Glob
