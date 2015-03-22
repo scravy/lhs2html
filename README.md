@@ -1,6 +1,8 @@
 Literate Haskell to HTML
 ========================
 
+[![Build Status](https://travis-ci.org/scravy/lhs2html.svg)](https://travis-ci.org/scravy/lhs2html)
+
 Install
 -------
 
